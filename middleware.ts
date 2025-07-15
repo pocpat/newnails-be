@@ -1,7 +1,13 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export default clerkMiddleware({
-  publicRoutes: ['/api/save-design'],
+const isPublicRoute = createRouteMatcher([
+  '/api/save-design',
+]);
+
+export default clerkMiddleware((auth, request) => {
+  if (!isPublicRoute(request)) {
+    auth().protect();
+  }
 });
 
 export const config = {
