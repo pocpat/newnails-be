@@ -3,7 +3,13 @@ import { generateImage } from '@/utils/imageRouter';
 
 
 export async function POST(request: Request) {
-  const { prompt, model, negative_prompt, width, height, num_images } = await request.json();
+  const { prompt, model, negative_prompt, n, size } = await request.json();
+
+  console.log('Received generate request with:');
+  console.log('  Prompt:', prompt);
+  console.log('  Model:', model);
+  console.log('  N:', n);
+  console.log('  Size:', size);
 
   if (!prompt || !model) {
     return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
@@ -14,9 +20,8 @@ export async function POST(request: Request) {
       prompt,
       model,
       negative_prompt,
-      width,
-      height,
-      num_images,
+      n,
+      size,
     });
     return NextResponse.json({ imageUrls });
   } catch (error: any) {

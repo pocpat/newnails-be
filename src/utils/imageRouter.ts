@@ -7,9 +7,8 @@ interface ImageGenerationOptions {
   prompt: string;
   model: string;
   negative_prompt?: string;
-  width?: number;
-  height?: number;
-  num_images?: number;
+  n?: number; // Number of images to generate
+  size?: string; // Image size, e.g., "1024x1024"
 }
 
 export async function generateImage(options: ImageGenerationOptions): Promise<string[]> {
@@ -22,6 +21,8 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
   console.log('  URL:', IMAGEROUTER_BASE_URL);
   console.log('  Model:', options.model);
   console.log('  API Key (last 4 chars):', IMAGEROUTER_API_KEY.slice(-4));
+  console.log('  N:', options.n);
+  console.log('  Size:', options.size);
 
   try {
     const response = await axios.post(
@@ -29,10 +30,9 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
       {
         prompt: options.prompt,
         model: options.model,
+        n: options.n,
+        size: options.size,
         negative_prompt: options.negative_prompt,
-        width: options.width,
-        height: options.height,
-        num_images: options.num_images,
       },
       {
         headers: {
@@ -42,9 +42,11 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
       }
     );
 
+    console.log('ImageRouter API response data:', response.data);
     if (response.data && Array.isArray(response.data.data)) {
       return response.data.data.map((item: any) => item.url) as string[];
     } else {
+      console.error('Unexpected ImageRouter API response format:', response.data);
       throw new Error('Invalid response from ImageRouter API.');
     }
   } catch (error: any) {
