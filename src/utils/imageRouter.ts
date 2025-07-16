@@ -44,12 +44,12 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
 
     console.log('ImageRouter API response data:', response.data);
     if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data.map((item: any) => item.url) as string[];
+      return response.data.data.map((item: { url: string }) => item.url) as string[];
     } else {
       console.error('Unexpected ImageRouter API response format:', response.data);
       throw new Error('Invalid response from ImageRouter API.');
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       console.error('ImageRouter API Axios Error:', error.response?.status, error.response?.data || error.message);
       throw new Error(`ImageRouter API Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`);

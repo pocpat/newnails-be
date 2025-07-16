@@ -1,9 +1,21 @@
-import mongoose from 'mongoose';
+import mongoose, { Mongoose } from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  throw new Error(
+    'Please define the MONGODB_URI environment variable inside .env.local'
+  );
+}
+
+// We augment the NodeJS global type with a `mongoose` property for caching.
+// This prevents TypeScript errors about an implicit 'any' type.
+declare global {
+  // eslint-disable-next-line no-var
+  var mongoose: {
+    promise: Promise<Mongoose> | null;
+    conn: Mongoose | null;
+  };
 }
 
 let cached = global.mongoose;
@@ -12,7 +24,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function dbConnect() {
+async function dbConnect(): Promise<Mongoose> {
   if (cached.conn) {
     return cached.conn;
   }
@@ -21,12 +33,18 @@ async function dbConnect() {
     const opts = {
       bufferCommands: false,
     };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    // The MONGODB_URI is checked for existence above, so we can safely use the non-null assertion operator (!).
+    cached.promise = mongoose.connect(MONGODB_URI!, opts);
   }
-  cached.conn = await cached.promise;
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    // If the connection fails, we reset the promise so that a future call can try again.
+    cached.promise = null;
+    throw e;
+  }
+
   return cached.conn;
 }
 

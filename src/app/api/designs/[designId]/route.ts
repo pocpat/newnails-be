@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { del } from '@vercel/blob';
 
-
-export async function DELETE(request: Request, { params }: { params: { designId: string } }) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function DELETE(request: NextRequest, context: { params: any })
+ {
   await dbConnect();
 
-  const { designId } = params;
+  const { designId } = context.params as { designId: string };
 
   if (!designId) {
     return NextResponse.json({ error: 'Design ID is required.' }, { status: 400 });
@@ -27,8 +28,8 @@ export async function DELETE(request: Request, { params }: { params: { designId:
     await DesignModel.deleteOne({ _id: designId });
 
     return NextResponse.json({ message: 'Design deleted successfully!' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting design:', error);
-    return NextResponse.json({ error: error.message || 'Failed to delete design.' }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || 'Failed to delete design.' }, { status: 500 });
   }
 }

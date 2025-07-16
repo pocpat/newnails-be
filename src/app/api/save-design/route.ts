@@ -27,7 +27,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     const newDesign = new DesignModel({
-      userId,
       prompt,
       imageUrl: blob.url,
       isFavorite: false,
@@ -35,8 +34,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     await newDesign.save();
 
     return NextResponse.json({ message: 'Design saved successfully!', design: newDesign, blob });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving design:', error);
-    return NextResponse.json({ error: error.message || 'Failed to save design.' }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || 'Failed to save design.' }, { status: 500 });
   }
 }

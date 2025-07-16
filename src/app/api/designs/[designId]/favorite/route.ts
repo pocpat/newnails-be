@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 
-export async function PATCH(request: Request, { params }: { params: { designId: string } }) {
-  await dbConnect();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function PATCH(request: NextRequest, context: { params: any })
+ {  await dbConnect();
 
-  const { designId } = params;
+  const { designId } = context.params as { designId: string };
 
   if (!designId) {
     return NextResponse.json({ error: 'Design ID is required.' }, { status: 400 });
@@ -22,8 +23,8 @@ export async function PATCH(request: Request, { params }: { params: { designId: 
     await design.save();
 
     return NextResponse.json({ message: 'Favorite status updated successfully!', design });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating favorite status:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update favorite status.' }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || 'Failed to update favorite status.' }, { status: 500 });
   }
 }

@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       size,
     });
     return NextResponse.json({ imageUrls });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating image:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate image.' }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || 'Failed to generate image.' }, { status: 500 });
   }
 }
