@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.25.0",
     "@vercel/blob": "^1.1.1",
+    "axios": "^1.10.0",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.3",
     "next": "15.4.1",

@@ -1,21 +1,49 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import axios from 'axios';
+import DesignModel from '@/models/DesignModel';
+import dbConnect from '@/lib/db';
+import { checkStorageLimit, incrementSavedDesigns } from '@/utils/rateLimiter';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const { searchParams } = new URL(request.url);
-  const filename = searchParams.get('filename');
+  await dbConnect();
 
-  if (!filename) {
-    return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
+  const { userId, prompt, temporaryImageUrl } = await request.json();
+
+  if (!userId || !prompt || !temporaryImageUrl) {
+    return NextResponse.json({ error: 'User ID, prompt, and temporary image URL are required.' }, { status: 400 });
+  }
+
+  const { allowed, remaining } = checkStorageLimit(userId);
+  if (!allowed) {
+    return NextResponse.json({ error: `Storage limit reached. Remaining: ${remaining}` }, { status: 429 });
   }
 
   try {
-    const blob = await put(filename, request.body || '', {
+    const imageResponse = await axios.get(temporaryImageUrl, { responseType: 'arraybuffer' });
+    const imageBuffer = Buffer.from(imageResponse.data);
+
+    const urlParts = temporaryImageUrl.split('/');
+    const filename = urlParts[urlParts.length - 1];
+
+    const blob = await put(filename, imageBuffer, {
       access: 'public',
+      contentType: imageResponse.headers['content-type'],
     });
-    return NextResponse.json(blob);
-  } catch (error) {
-    console.error('Error uploading to Vercel Blob:', error);
-    return NextResponse.json({ error: 'Failed to upload to Vercel Blob' }, { status: 500 });
+
+    const newDesign = new DesignModel({
+      userId,
+      prompt,
+      imageUrl: blob.url,
+      isFavorite: false,
+    });
+    await newDesign.save();
+
+    incrementSavedDesigns(userId);
+
+    return NextResponse.json({ message: 'Design saved successfully!', design: newDesign, blob });
+  } catch (error: any) {
+    console.error('Error saving design:', error);
+    return NextResponse.json({ error: error.message || 'Failed to save design.' }, { status: 500 });
   }
 }
