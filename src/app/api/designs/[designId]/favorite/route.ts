@@ -6,17 +6,16 @@ export async function PATCH(request: Request, { params }: { params: { designId: 
   await dbConnect();
 
   const { designId } = params;
-  const { userId } = await request.json(); // Assuming userId is sent in the body for ownership check
 
-  if (!designId || !userId) {
-    return NextResponse.json({ error: 'Design ID and User ID are required.' }, { status: 400 });
+  if (!designId) {
+    return NextResponse.json({ error: 'Design ID is required.' }, { status: 400 });
   }
 
   try {
-    const design = await DesignModel.findOne({ _id: designId, userId });
+    const design = await DesignModel.findOne({ _id: designId });
 
     if (!design) {
-      return NextResponse.json({ error: 'Design not found or unauthorized.' }, { status: 404 });
+      return NextResponse.json({ error: 'Design not found.' }, { status: 404 });
     }
 
     design.isFavorite = !design.isFavorite;

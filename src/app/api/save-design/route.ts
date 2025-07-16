@@ -3,20 +3,15 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-import { checkStorageLimit, incrementSavedDesigns } from '@/utils/rateLimiter';
+
 
 export async function POST(request: Request): Promise<NextResponse> {
   await dbConnect();
 
-  const { userId, prompt, temporaryImageUrl } = await request.json();
+  const { prompt, temporaryImageUrl } = await request.json();
 
-  if (!userId || !prompt || !temporaryImageUrl) {
-    return NextResponse.json({ error: 'User ID, prompt, and temporary image URL are required.' }, { status: 400 });
-  }
-
-  const { allowed, remaining } = checkStorageLimit(userId);
-  if (!allowed) {
-    return NextResponse.json({ error: `Storage limit reached. Remaining: ${remaining}` }, { status: 429 });
+  if (!prompt || !temporaryImageUrl) {
+    return NextResponse.json({ error: 'Prompt and temporary image URL are required.' }, { status: 400 });
   }
 
   try {
@@ -38,8 +33,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       isFavorite: false,
     });
     await newDesign.save();
-
-    incrementSavedDesigns(userId);
 
     return NextResponse.json({ message: 'Design saved successfully!', design: newDesign, blob });
   } catch (error: any) {
