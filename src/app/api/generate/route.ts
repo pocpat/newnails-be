@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
 import { auth } from '../../lib/firebaseAdmin';
-import { checkDailyGenerationLimit } from '../../utils/rateLimiter';
+import { checkDailyGenerationLimit, incrementGenerationCount } from '../../utils/rateLimiter';
 
 export async function POST(request: Request) {
   const { prompt, model, negative_prompt, n, size } = await request.json();
@@ -44,6 +44,9 @@ export async function POST(request: Request) {
       n,
       size,
     });
+
+    await incrementGenerationCount(userId);
+
     return NextResponse.json({ imageUrls });
   } catch (error: unknown) {
     console.error('Error generating image:', error);
