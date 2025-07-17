@@ -1,12 +1,27 @@
 import { NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
+import { auth } from '../../lib/firebaseAdmin';
 
-export async function GET() {
+export async function GET(request: Request) {
   await dbConnect();
 
+  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return NextResponse.json({ error: 'Authorization token missing.' }, { status: 401 });
+  }
+
+  let userId: string;
   try {
-    const designs = await DesignModel.find({}).sort({ createdAt: -1 });
+    const decodedToken = await auth.verifyIdToken(token);
+    userId = decodedToken.uid;
+  } catch (error) {
+    console.error('Error verifying Firebase ID token:', error);
+    return NextResponse.json({ error: 'Invalid authorization token.' }, { status: 401 });
+  }
+
+  try {
+    const designs = await DesignModel.find({ userId }).sort({ createdAt: -1 });
     return NextResponse.json(designs);
   } catch (error: unknown) {
     console.error('Error fetching designs:', error);

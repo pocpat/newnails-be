@@ -3,18 +3,38 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-
+import { auth } from '../../lib/firebaseAdmin';
+import { checkTotalStorageLimit } from '../../utils/rateLimiter';
 
 export async function POST(request: Request): Promise<NextResponse> {
   await dbConnect();
 
   const { prompt, temporaryImageUrl } = await request.json();
 
+  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return NextResponse.json({ error: 'Authorization token missing.' }, { status: 401 });
+  }
+
+  let userId: string;
+  try {
+    const decodedToken = await auth.verifyIdToken(token);
+    userId = decodedToken.uid;
+  } catch (error) {
+    console.error('Error verifying Firebase ID token:', error);
+    return NextResponse.json({ error: 'Invalid authorization token.' }, { status: 401 });
+  }
+
   if (!prompt || !temporaryImageUrl) {
     return NextResponse.json({ error: 'Prompt and temporary image URL are required.' }, { status: 400 });
   }
 
   try {
+    const { allowed, message } = await checkTotalStorageLimit(userId);
+    if (!allowed) {
+      return NextResponse.json({ error: message }, { status: 429 });
+    }
+
     const imageResponse = await axios.get(temporaryImageUrl, { responseType: 'arraybuffer' });
     const imageBuffer = Buffer.from(imageResponse.data);
 
@@ -27,6 +47,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     const newDesign = new DesignModel({
+      userId, // Save the userId
       prompt,
       imageUrl: blob.url,
       isFavorite: false,
