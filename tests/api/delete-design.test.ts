@@ -1,5 +1,6 @@
 import { DELETE } from '../../src/app/api/designs/[designId]/route';
 import { NextResponse } from 'next/server';
+import { auth } from '../../src/lib/firebaseAdmin';
 
 // Mock external dependencies
 jest.mock('../../src/models/DesignModel', () => ({
@@ -48,15 +49,16 @@ describe('DELETE /api/designs/[designId]', () => {
       headers: new Headers({ Authorization: 'Bearer invalid-token' }),
     } as any;
     const mockContext = { params: { designId: '123' } };
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockRejectedValueOnce(new Error('Invalid token'));
+    (auth.verifyIdToken as jest.Mock).mockRejectedValueOnce(new Error('Invalid token'));
 
     const response = await DELETE(mockRequest, mockContext);
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Invalid authorization token.');
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return 404 if design is not found', async () => {
@@ -65,8 +67,7 @@ describe('DELETE /api/designs/[designId]', () => {
     } as any;
     const mockContext = { params: { designId: 'non-existent-id' } };
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const DesignModel = require('../../src/models/DesignModel').default;
     DesignModel.findOne.mockResolvedValueOnce(null);
@@ -84,8 +85,7 @@ describe('DELETE /api/designs/[designId]', () => {
     } as any;
     const mockContext = { params: { designId: 'design-id' } };
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const DesignModel = require('../../src/models/DesignModel').default;
     DesignModel.findOne.mockResolvedValueOnce({
@@ -106,8 +106,7 @@ describe('DELETE /api/designs/[designId]', () => {
     } as any;
     const mockContext = { params: { designId: 'design-id' } };
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const DesignModel = require('../../src/models/DesignModel').default;
     DesignModel.findOne.mockResolvedValueOnce({

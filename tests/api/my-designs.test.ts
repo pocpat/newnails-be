@@ -1,5 +1,6 @@
 import { GET } from '../../src/app/api/my-designs/route';
 import { NextResponse } from 'next/server';
+import { auth } from '../../src/lib/firebaseAdmin';
 
 // Mock external dependencies
 jest.mock('../../src/models/DesignModel', () => ({
@@ -42,15 +43,16 @@ describe('GET /api/my-designs', () => {
     const mockRequest = {
       headers: new Headers({ Authorization: 'Bearer invalid-token' }),
     } as any;
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockRejectedValueOnce(new Error('Invalid token'));
+    (auth.verifyIdToken as jest.Mock).mockRejectedValueOnce(new Error('Invalid token'));
 
     const response = await GET(mockRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Invalid authorization token.');
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return designs for the authenticated user on success', async () => {
@@ -64,8 +66,7 @@ describe('GET /api/my-designs', () => {
       headers: new Headers({ Authorization: 'Bearer valid-token' }),
     } as any;
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: userId });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: userId });
 
     const DesignModel = require('../../src/models/DesignModel').default;
     DesignModel.find.mockReturnThis();

@@ -11,7 +11,6 @@ if (!MONGODB_URI) {
 // We augment the NodeJS global type with a `mongoose` property for caching.
 // This prevents TypeScript errors about an implicit 'any' type.
 declare global {
-  // eslint-disable-next-line no-var
   var mongoose: {
     promise: Promise<Mongoose> | null;
     conn: Mongoose | null;

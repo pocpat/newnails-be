@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { del } from '@vercel/blob';
-import { auth } from '../../../lib/firebaseAdmin';
+import { auth } from '@/lib/firebaseAdmin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(request: NextRequest, context: { params: any })

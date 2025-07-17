@@ -1,5 +1,6 @@
 import { POST } from '../../src/app/api/save-design/route';
 import { NextResponse } from 'next/server';
+import { auth } from '../../src/lib/firebaseAdmin';
 
 // Mock external dependencies
 jest.mock('@vercel/blob', () => ({
@@ -55,15 +56,16 @@ describe('POST /api/save-design', () => {
       headers: new Headers({ Authorization: 'Bearer invalid-token' }),
       json: () => Promise.resolve({}),
     } as any;
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockRejectedValueOnce(new Error('Invalid token'));
+    (auth.verifyIdToken as jest.Mock).mockRejectedValueOnce(new Error('Invalid token'));
 
     const response = await POST(mockRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Invalid authorization token.');
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return 429 if total storage limit is reached', async () => {
@@ -75,8 +77,7 @@ describe('POST /api/save-design', () => {
       }),
     } as any;
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const { checkTotalStorageLimit } = require('../../src/utils/rateLimiter');
     checkTotalStorageLimit.mockResolvedValueOnce({
@@ -100,8 +101,7 @@ describe('POST /api/save-design', () => {
       }),
     } as any;
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const { checkTotalStorageLimit } = require('../../src/utils/rateLimiter');
     checkTotalStorageLimit.mockResolvedValueOnce({ allowed: true });

@@ -32,7 +32,7 @@ export async function incrementGenerationCount(userId: string) {
   const userDoc = await userRef.get();
 
   let generationCount = 1;
-  let lastGenerationDate = today;
+  const lastGenerationDate = today;
 
   if (userDoc.exists) {
     const userData = userDoc.data();

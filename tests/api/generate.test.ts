@@ -1,5 +1,6 @@
 import { POST } from '../../src/app/api/generate/route';
 import { NextResponse } from 'next/server';
+import { auth } from '../../src/lib/firebaseAdmin';
 
 // Mock external dependencies
 jest.mock('../../src/utils/imageRouter', () => ({
@@ -40,15 +41,16 @@ describe('POST /api/generate', () => {
       headers: new Headers({ Authorization: 'Bearer invalid-token' }),
       json: () => Promise.resolve({}),
     } as any;
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockRejectedValueOnce(new Error('Invalid token'));
+    (auth.verifyIdToken as jest.Mock).mockRejectedValueOnce(new Error('Invalid token'));
 
     const response = await POST(mockRequest);
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Invalid authorization token.');
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return 429 if daily generation limit is reached', async () => {
@@ -60,8 +62,7 @@ describe('POST /api/generate', () => {
       }),
     } as any;
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const { checkDailyGenerationLimit } = require('../../src/utils/rateLimiter');
     checkDailyGenerationLimit.mockResolvedValueOnce({
@@ -87,9 +88,9 @@ describe('POST /api/generate', () => {
         size: '512x512',
       }),
     } as any;
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValueOnce({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValueOnce({ uid: 'test-user-id' });
 
     const { checkDailyGenerationLimit, incrementGenerationCount } = require('../../src/utils/rateLimiter');
     checkDailyGenerationLimit.mockResolvedValueOnce({ allowed: true });
@@ -110,5 +111,6 @@ describe('POST /api/generate', () => {
       size: '512x512',
     });
     expect(incrementGenerationCount).toHaveBeenCalledWith('test-user-id');
+    consoleLogSpy.mockRestore();
   });
 });

@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-import { auth } from '../../lib/firebaseAdmin';
-import { checkTotalStorageLimit } from '../../utils/rateLimiter';
+import { auth } from '@/lib/firebaseAdmin';
+import { checkTotalStorageLimit } from '@/utils/rateLimiter';
 
 export async function POST(request: Request): Promise<NextResponse> {
   await dbConnect();

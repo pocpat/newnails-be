@@ -1,5 +1,6 @@
 import { PATCH } from '../../src/app/api/designs/[designId]/favorite/route';
 import { NextResponse } from 'next/server';
+import { auth } from '../../src/lib/firebaseAdmin';
 
 // Mock external dependencies
 jest.mock('../../src/models/DesignModel', () => ({
@@ -24,8 +25,7 @@ describe('PATCH /api/designs/[designId]/favorite', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Default mock for auth.verifyIdToken for tests requiring a valid token
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockResolvedValue({ uid: 'test-user-id' });
+    (auth.verifyIdToken as jest.Mock).mockResolvedValue({ uid: 'test-user-id' });
   });
 
   it('should return 401 if authorization token is missing', async () => {
@@ -46,15 +46,16 @@ describe('PATCH /api/designs/[designId]/favorite', () => {
       headers: new Headers({ Authorization: 'Bearer invalid-token' }),
     } as any;
     const mockContext = { params: { designId: '123' } };
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { auth } = require('../../src/lib/firebaseAdmin');
-    auth.verifyIdToken.mockRejectedValueOnce(new Error('Invalid token')); // Override for this specific test
+    (auth.verifyIdToken as jest.Mock).mockRejectedValueOnce(new Error('Invalid token')); // Override for this specific test
 
     const response = await PATCH(mockRequest, mockContext);
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Invalid authorization token.');
+    consoleErrorSpy.mockRestore();
   });
 
   it('should return 404 if design is not found', async () => {

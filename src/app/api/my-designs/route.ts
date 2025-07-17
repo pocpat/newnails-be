@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-import { auth } from '../../lib/firebaseAdmin';
+import { auth } from '@/lib/firebaseAdmin';
 
 export async function GET(request: Request) {
   await dbConnect();
