@@ -1,9 +1,7 @@
-import { db } from '../lib/firebaseAdmin';
-
 const DAILY_GENERATION_LIMIT = 20;
 const TOTAL_STORAGE_LIMIT = 40;
 
-export async function checkDailyGenerationLimit(userId: string): Promise<{ allowed: boolean; message?: string }> {
+export async function checkDailyGenerationLimit(userId: string, db: FirebaseFirestore.Firestore): Promise<{ allowed: boolean; message?: string }> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -24,7 +22,7 @@ export async function checkDailyGenerationLimit(userId: string): Promise<{ allow
   return { allowed: true };
 }
 
-export async function incrementGenerationCount(userId: string) {
+export async function incrementGenerationCount(userId: string, db: FirebaseFirestore.Firestore) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -50,7 +48,7 @@ export async function incrementGenerationCount(userId: string) {
   }, { merge: true });
 }
 
-export async function checkTotalStorageLimit(userId: string): Promise<{ allowed: boolean; message?: string }> {
+export async function checkTotalStorageLimit(userId: string, db: FirebaseFirestore.Firestore): Promise<{ allowed: boolean; message?: string }> {
   const userDesignsRef = db.collection('user_designs').where('userId', '==', userId);
   const snapshot = await userDesignsRef.get();
 

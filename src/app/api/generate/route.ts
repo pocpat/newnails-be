@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
-import { auth } from '@/lib/firebaseAdmin';
 import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
+import * as admin from 'firebase-admin';
 
 export async function POST(request: Request) {
   const { prompt, model, negative_prompt, n, size } = await request.json();
@@ -12,22 +12,17 @@ export async function POST(request: Request) {
   }
 
   let userId: string;
+  let auth: admin.auth.Auth;
+  let db: admin.firestore.Firestore;
   try {
-    const decodedToken = await auth.verifyIdToken(token);
-    userId = decodedToken.uid;
-  } catch (error) {
-    console.error('Error verifying Firebase ID token:', error);
-    return NextResponse.json({ error: 'Invalid authorization token.' }, { status: 401 });
-  }
+    ({ auth, db } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin());
+    userId = (await auth.verifyIdToken(token)).uid;
 
-  
+    if (!prompt || !model) {
+      return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
+    }
 
-  if (!prompt || !model) {
-    return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
-  }
-
-  try {
-    const { allowed, message } = await checkDailyGenerationLimit(userId);
+    const { allowed, message } = await checkDailyGenerationLimit(userId, db);
     if (!allowed) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
@@ -40,7 +35,7 @@ export async function POST(request: Request) {
       size,
     });
 
-    await incrementGenerationCount(userId);
+    await incrementGenerationCount(userId, db);
 
     return NextResponse.json({ imageUrls });
   } catch (error: unknown) {

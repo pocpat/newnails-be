@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '../../../lib/firebaseAdmin';
+
+export const dynamic = 'force-dynamic';
+
 
 /**
  * API route for testing Firebase authentication.
@@ -18,15 +20,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Firebase ID token is missing.' }, { status: 401 });
     }
 
-    // The auth object is imported from firebaseAdmin, which is already initialized.
-    // We can use it directly to verify the token.
+    // Lazy import firebaseAdmin to avoid issues during build time
+    const { auth } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin();
     const decodedToken = await auth.verifyIdToken(idToken);
 
     // If the token is valid, return the user's UID and email.
     return NextResponse.json({ uid: decodedToken.uid, email: decodedToken.email });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Authentication test failed:', error);
-    return NextResponse.json({ error: 'Invalid or expired Firebase ID token.', details: error.message }, { status: 403 });
+    return NextResponse.json({
+       error: 'Invalid or expired Firebase ID token.', 
+       details: error instanceof Error ? error.message : String(error),}, { status: 403 });
   }
 }

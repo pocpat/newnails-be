@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { del } from '@vercel/blob';
-import { auth } from '@/lib/firebaseAdmin';
+import * as admin from 'firebase-admin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function DELETE(request: NextRequest, context: { params: any })
@@ -17,7 +17,9 @@ export async function DELETE(request: NextRequest, context: { params: any })
   }
 
   let userId: string;
+  let auth: admin.auth.Auth;
   try {
+    ({ auth } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin());
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
   } catch (error) {

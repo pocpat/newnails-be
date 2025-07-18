@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-import { auth } from '@/lib/firebaseAdmin';
 import { checkTotalStorageLimit } from '@/utils/rateLimiter';
+import * as admin from 'firebase-admin';
 
 export async function POST(request: Request): Promise<NextResponse> {
   await dbConnect();
@@ -17,7 +17,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   let userId: string;
+  let auth: admin.auth.Auth;
+  let db: admin.firestore.Firestore;
   try {
+    ({ auth, db } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin());
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
   } catch (error) {
@@ -30,7 +33,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const { allowed, message } = await checkTotalStorageLimit(userId);
+    const { allowed, message } = await checkTotalStorageLimit(userId, db);
     if (!allowed) {
       return NextResponse.json({ error: message }, { status: 429 });
     }

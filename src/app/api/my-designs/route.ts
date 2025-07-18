@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
-import { auth } from '@/lib/firebaseAdmin';
+import * as admin from 'firebase-admin';
 
 export async function GET(request: Request) {
   await dbConnect();
@@ -12,7 +12,9 @@ export async function GET(request: Request) {
   }
 
   let userId: string;
+  let auth: admin.auth.Auth;
   try {
+    ({ auth } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin());
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
   } catch (error) {
