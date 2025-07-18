@@ -4,6 +4,8 @@ function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON || '{}');
+console.log("serviceAccount: ", serviceAccount);
+console.log("process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON: ", process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON);
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
