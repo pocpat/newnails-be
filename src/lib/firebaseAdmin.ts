@@ -3,8 +3,7 @@ import * as admin from 'firebase-admin';
 function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
-      const serviceAccountJsonString = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON || '', 'base64').toString('utf8');
-      const serviceAccount = JSON.parse(serviceAccountJsonString || '{}');
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON || '{}');
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
