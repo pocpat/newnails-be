@@ -18,7 +18,8 @@ export async function middleware(request: NextRequest) {
 
   let auth: admin.auth.Auth;
   try {
-    ({ auth } = (await import('./src/lib/firebaseAdmin')).initializeFirebaseAdmin());
+    const firebaseAdmin = await import('./src/lib/firebaseAdmin');
+    auth = firebaseAdmin.default.auth();
     const decodedToken = await auth.verifyIdToken(token);
     // You can attach the decodedToken to the request if needed for later use in API routes
     // For example, by setting a custom header or using a context object if available in Next.js middleware
