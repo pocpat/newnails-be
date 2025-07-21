@@ -17,10 +17,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   let userId: string;
-  let auth: admin.auth.Auth;
-  let db: admin.firestore.Firestore;
   try {
-    ({ auth, db } = (await import('@/lib/firebaseAdmin')).initializeFirebaseAdmin());
+    const admin = (await import('@/lib/firebaseAdmin')).default;
+    const auth = admin.auth();
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
   } catch (error) {
@@ -33,7 +32,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const { allowed, message } = await checkTotalStorageLimit(userId, db);
+    const { allowed, message } = await checkTotalStorageLimit(userId);
     if (!allowed) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
