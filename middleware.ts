@@ -35,6 +35,7 @@ export const config = {
     '/api/my-designs/:path*',
     '/api/save-design/:path*',
     '/api/designs/:path*',
+    '/api/generate/:path*',
     // Add other protected API routes here
   ],
 };
