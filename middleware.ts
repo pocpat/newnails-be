@@ -2,31 +2,41 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import * as admin from 'firebase-admin';
 
+// A list of all API routes that require authentication.
+const protectedPaths = [
+  '/api/my-designs',
+  '/api/save-design',
+  '/api/designs',
+  '/api/generate',
+];
+
 export async function middleware(request: NextRequest) {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '');
   console.log('Middleware: Received token:', token ? 'Token present' : 'Token missing');
 
-  if (!token) {
-    // Allow access to public routes, e.g., /api/generate if it doesn't require auth
-    // For now, we'll redirect to a login or return unauthorized for protected routes
-    if (request.nextUrl.pathname.startsWith('/api/my-designs') ||
-        request.nextUrl.pathname.startsWith('/api/save-design') ||
-        request.nextUrl.pathname.startsWith('/api/designs') ||
-        request.nextUrl.pathname.startsWith('/api/generate')) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+  const isProtectedRoute = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+
+  // If the route is not protected, allow the request to continue.
+  if (!isProtectedRoute) {
     return NextResponse.next();
   }
 
-  let auth: admin.auth.Auth;
+  // If the route is protected and there is no token, deny access.
+  if (!token) {
+    console.log('Middleware: Access denied. No token for protected route.');
+    return new NextResponse('Authorization token is required.', { status: 401 });
+  }
+
   try {
     const firebaseAdminApp = (await import('./src/lib/firebaseAdmin')).initializeFirebaseAdmin();
-    auth = firebaseAdminApp.auth();
-    const decodedToken = await auth.verifyIdToken(token);
-    // You can attach the decodedToken to the request if needed for later use in API routes
-    // For example, by setting a custom header or using a context object if available in Next.js middleware
-    // For now, just verifying the token is enough to allow the request to proceed.
-    return NextResponse.next();
+    const decodedToken = await firebaseAdminApp.auth().verifyIdToken(token);
+
+    // Token is valid. Attach user's UID to the request headers
+    // so our API routes can access it.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-user-id', decodedToken.uid);
+
+    return NextResponse.next({ request: { headers: requestHeaders } });
   } catch (error) {
     console.error('Error verifying Firebase ID token:', error);
     return new NextResponse('Unauthorized', { status: 401 });
@@ -35,10 +45,12 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/my-designs/:path*',
-    '/api/save-design/:path*',
-    '/api/designs/:path*',
-    '/api/generate/:path*',
-    // Add other protected API routes here
+    /*
+     * Match all API routes except for the ones that start with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/api/:path*',
   ],
 };
