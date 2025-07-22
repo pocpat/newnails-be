@@ -4,28 +4,17 @@ import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { checkTotalStorageLimit } from '@/utils/rateLimiter';
-import * as admin from 'firebase-admin';
 
 export async function POST(request: Request): Promise<NextResponse> {
   await dbConnect();
 
   const { prompt, temporaryImageUrl } = await request.json();
 
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) {
-    return NextResponse.json({ error: 'Authorization token missing.' }, { status: 401 });
-  }
-
-  let userId: string;
-  try {
-    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
-    const adminApp = initializeFirebaseAdmin();
-    const auth = adminApp.auth();
-    const decodedToken = await auth.verifyIdToken(token);
-    userId = decodedToken.uid;
-  } catch (error) {
-    console.error('Error verifying Firebase ID token:', error);
-    return NextResponse.json({ error: 'Invalid authorization token.' }, { status: 401 });
+  // The user ID is now passed from the middleware after token verification.
+  const userId = request.headers.get('x-user-id');
+  if (!userId) {
+    // This case should not be reached if middleware is configured correctly.
+    return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
   if (!prompt || !temporaryImageUrl) {
@@ -41,8 +30,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     const imageResponse = await axios.get(temporaryImageUrl, { responseType: 'arraybuffer' });
     const imageBuffer = Buffer.from(imageResponse.data);
 
-    const urlParts = temporaryImageUrl.split('/');
-    const filename = urlParts[urlParts.length - 1];
+    // Use the URL constructor for more robust parsing of the filename.
+    const filename = new URL(temporaryImageUrl).pathname.split('/').pop();
+
+    if (!filename) {
+      return NextResponse.json({ error: 'Could not determine filename from temporary URL.' }, { status: 400 });
+    }
 
     const blob = await put(filename, imageBuffer, {
       access: 'public',

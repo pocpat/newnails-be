@@ -2,30 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { del } from '@vercel/blob';
-import * as admin from 'firebase-admin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function DELETE(request: NextRequest, context: { params: any })
- {
+interface DeleteContext {
+  params: { designId: string };
+}
+
+export async function DELETE(request: NextRequest, context: DeleteContext) {
   await dbConnect();
+  const { designId } = context.params;
 
-  const { designId } = context.params as { designId: string };
-
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) {
-    return NextResponse.json({ error: 'Authorization token missing.' }, { status: 401 });
-  }
-
-  let userId: string;
-  try {
-    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
-    const adminApp = initializeFirebaseAdmin();
-    const auth = adminApp.auth();
-    const decodedToken = await auth.verifyIdToken(token);
-    userId = decodedToken.uid;
-  } catch (error) {
-    console.error('Error verifying Firebase ID token:', error);
-    return NextResponse.json({ error: 'Invalid authorization token.' }, { status: 401 });
+  // The user ID is now passed from the middleware after token verification.
+  const userId = request.headers.get('x-user-id');
+  if (!userId) {
+    // This case should not be reached if middleware is configured correctly.
+    return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
   if (!designId) {
@@ -33,21 +23,18 @@ export async function DELETE(request: NextRequest, context: { params: any })
   }
 
   try {
-    const design = await DesignModel.findOne({ _id: designId });
+    // Find the design only if it matches the designId AND belongs to the user.
+    // This is more secure and efficient than a separate ownership check.
+    const design = await DesignModel.findOne({ _id: designId, userId });
 
     if (!design) {
-      return NextResponse.json({ error: 'Design not found.' }, { status: 404 });
-    }
-
-    if (design.userId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized: You do not own this design.' }, { status: 403 });
+      return NextResponse.json({ error: 'Design not found or you do not have permission to delete it.' }, { status: 404 });
     }
 
     // Delete image from Vercel Blob
     await del(design.imageUrl);
 
-    // Delete document from MongoDB
-    await DesignModel.deleteOne({ _id: designId });
+    await design.deleteOne();
 
     return NextResponse.json({ message: 'Design deleted successfully!' });
   } catch (error: unknown) {
