@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     // Lazy import firebaseAdmin to avoid issues during build time
-    const admin = (await import('@/lib/firebaseAdmin')).default;
-    const auth = admin.auth();
+    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
+    const adminApp = initializeFirebaseAdmin();
+    const auth = adminApp.auth();
 
     const { uid } = await req.json();
 
