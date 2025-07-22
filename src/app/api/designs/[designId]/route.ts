@@ -18,8 +18,9 @@ export async function DELETE(request: NextRequest, context: { params: any })
 
   let userId: string;
   try {
-    const admin = (await import('@/lib/firebaseAdmin')).default;
-    const auth = admin.auth();
+    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
+    const adminApp = initializeFirebaseAdmin();
+    const auth = adminApp.auth();
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
   } catch (error) {

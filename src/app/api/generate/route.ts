@@ -14,9 +14,10 @@ export async function POST(request: Request) {
 
   let userId: string;
   try {
-    const admin = (await import('@/lib/firebaseAdmin')).default;
-    const auth = admin.auth();
-    const db = admin.firestore();
+    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
+    const adminApp = initializeFirebaseAdmin();
+    const auth = adminApp.auth();
+    const db = adminApp.firestore();
     const decodedToken = await auth.verifyIdToken(token);
     userId = decodedToken.uid;
     console.log('Generate API: Decoded userId:', userId);
