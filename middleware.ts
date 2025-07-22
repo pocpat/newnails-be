@@ -4,13 +4,15 @@ import * as admin from 'firebase-admin';
 
 export async function middleware(request: NextRequest) {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  console.log('Middleware: Received token:', token ? 'Token present' : 'Token missing');
 
   if (!token) {
     // Allow access to public routes, e.g., /api/generate if it doesn't require auth
     // For now, we'll redirect to a login or return unauthorized for protected routes
     if (request.nextUrl.pathname.startsWith('/api/my-designs') ||
         request.nextUrl.pathname.startsWith('/api/save-design') ||
-        request.nextUrl.pathname.slice(0, request.nextUrl.pathname.lastIndexOf('/')).startsWith('/api/designs')) { // Adjusted path check
+        request.nextUrl.pathname.startsWith('/api/designs') ||
+        request.nextUrl.pathname.startsWith('/api/generate')) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
     return NextResponse.next();
