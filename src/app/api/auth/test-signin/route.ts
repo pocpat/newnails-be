@@ -21,8 +21,9 @@ export async function POST(req: Request) {
     }
 
     // Lazy import firebaseAdmin to avoid issues during build time
-    const admin = (await import('@/lib/firebaseAdmin')).default;
-    const auth = admin.auth();
+    const { initializeFirebaseAdmin } = await import('@/lib/firebaseAdmin');
+    const adminApp = initializeFirebaseAdmin();
+    const auth = adminApp.auth();
     const decodedToken = await auth.verifyIdToken(idToken);
 
     // If the token is valid, return the user's UID and email.
