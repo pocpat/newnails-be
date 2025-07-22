@@ -50,7 +50,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
     await newDesign.save();
 
-    return NextResponse.json({ message: 'Design saved successfully!', design: newDesign, blob });
+    // It's best practice to return only the data the client needs.
+    // Avoid exposing the entire database model or blob storage response.
+    return NextResponse.json({
+      message: 'Design saved successfully!',
+      designId: newDesign._id,
+    });
   } catch (error: unknown) {
     console.error('Error saving design:', error);
     return NextResponse.json({ error: (error as Error).message || 'Failed to save design.' }, { status: 500 });
