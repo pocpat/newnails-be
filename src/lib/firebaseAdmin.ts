@@ -11,11 +11,14 @@ export function initializeFirebaseAdmin(): admin.app.App {
     return admin.apps[0]!;
   }
 
-  // Parse the service account key from the environment variable.
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON!
-  );
+// Get the key from environment variables.
+const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON!;
 
+// Repair the newline characters that get corrupted by Vercel.
+const repairedServiceAccountString = serviceAccountString.replace(/\\n/g, '\n');
+
+// Now parse the repaired string.
+const serviceAccount = JSON.parse(repairedServiceAccountString);
   // Initialize the Firebase Admin SDK.
   return admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
