@@ -12,10 +12,12 @@ interface ImageGenerationOptions {
 }
 
 export async function generateImage(options: ImageGenerationOptions): Promise<string[]> {
+  console.log('ImageRouter: Checking for API Key...');
   if (!IMAGEROUTER_API_KEY) {
-    console.error('IMAGEROUTER_API_KEY is not defined.');
-    throw new Error('IMAGEROUTER_API_KEY is not defined in environment variables.');
+    console.error('ImageRouter Error: IMAGEROUTER_API_KEY is not defined in the environment.');
+    throw new Error('Configuration error: Image generation API key is missing.');
   }
+  console.log('ImageRouter: API Key is present. Type:', typeof IMAGEROUTER_API_KEY, 'Length:', IMAGEROUTER_API_KEY.length);
 
   console.log('Attempting to call ImageRouter API:');
   console.log('  URL:', IMAGEROUTER_BASE_URL);

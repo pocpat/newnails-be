@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ imageUrls });
   } catch (error: unknown) {
-    console.error('Error generating image:', error);
-    return NextResponse.json({ error: (error as Error).message || 'Failed to generate image.' }, { status: 500 });
+    console.error('Error in /api/generate:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
 }
