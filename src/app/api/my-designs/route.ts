@@ -4,7 +4,7 @@ import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const userId = await verifyAuth(request as any);
+  const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }

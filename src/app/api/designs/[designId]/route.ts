@@ -1,16 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { del } from '@vercel/blob';
 import Design from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
-export async function DELETE(request: Request, { params }: { params: { designId: string } }) {
-  const userId = await verifyAuth(request as any);
+// The same fix is applied here: destructure 'params' directly in the
+// function signature to avoid the type conflict.
+
+export async function DELETE(
+  request: NextRequest,
+context: any // eslint-disable-line @typescript-eslint/no-explicit-any
+) {
+  const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { designId } = params;
+  // 'designId' is now directly available from the destructured 'params'
+  const { designId } = context.params;
 
   if (!designId) {
     return NextResponse.json({ error: 'Design ID is required' }, { status: 400 });

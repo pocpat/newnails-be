@@ -1,6 +1,6 @@
 import DesignModel from '@/models/DesignModel';
 
-const DAILY_GENERATION_LIMIT = 20;
+// const DAILY_GENERATION_LIMIT = 20;
 const TOTAL_STORAGE_LIMIT = 40;
 
 // This function is a placeholder and needs to be implemented with a proper user model if you want to track daily limits.

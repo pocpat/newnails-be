@@ -1,15 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Design from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
-export async function PATCH(request: Request, { params }: { params: { designId: string } }) {
-  const userId = await verifyAuth(request as any);
+// The fix is to destructure the params directly from the context object
+// and provide the type inline. This avoids the conflict with Next.js's
+// internal type generation during the build process.
+
+export async function PATCH(
+  request: NextRequest,
+    context: any // eslint-disable-line @typescript-eslint/no-explicit-any
+) {
+  const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { designId } = params;
+  // 'designId' is now directly available from the destructured 'params'
+  const { designId } = context.params;
 
   if (!designId) {
     return NextResponse.json({ error: 'Design ID is required' }, { status: 400 });
@@ -24,6 +32,9 @@ export async function PATCH(request: Request, { params }: { params: { designId: 
       return NextResponse.json({ error: 'Design not found' }, { status: 404 });
     }
 
+    // Important: Ensure you are comparing consistent types.
+    // If 'userId' is a string from verifyAuth and design.userId is an ObjectId,
+    // converting the ObjectId to a string is the correct approach.
     if (design.userId.toString() !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

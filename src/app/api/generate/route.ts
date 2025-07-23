@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
 import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
 import { verifyAuth } from '@/lib/auth';
 
-export async function POST(request: Request) {
-  const userId = await verifyAuth(request as any);
+export async function POST(request: NextRequest) {
+  const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }

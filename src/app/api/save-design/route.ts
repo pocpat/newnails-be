@@ -1,13 +1,13 @@
 import { put } from '@vercel/blob';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { checkTotalStorageLimit } from '@/utils/rateLimiter';
 import { verifyAuth } from '@/lib/auth';
 
-export async function POST(request: Request): Promise<NextResponse> {
-  const userId = await verifyAuth(request as any);
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
