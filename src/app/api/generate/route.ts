@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
   const { prompt, model, negative_prompt, n, size } = await request.json();
 
   console.log('Generate API: Authenticated userId:', userId);
+  console.log('Generate API: Received prompt:', prompt);
 
   try {
     if (!prompt || !model) {
