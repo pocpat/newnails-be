@@ -4,18 +4,17 @@ import axios from 'axios';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { checkTotalStorageLimit } from '@/utils/rateLimiter';
+import { verifyAuth } from '@/lib/auth';
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const userId = await verifyAuth(request as any);
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
+  }
+
   await dbConnect();
 
   const { prompt, temporaryImageUrl } = await request.json();
-
-  // The user ID is now passed from the middleware after token verification.
-  const userId = request.headers.get('x-user-id');
-  if (!userId) {
-    // This case should not be reached if middleware is configured correctly.
-    return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
-  }
 
   if (!prompt || !temporaryImageUrl) {
     return NextResponse.json({ error: 'Prompt and temporary image URL are required.' }, { status: 400 });

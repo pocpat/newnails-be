@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
 import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
+import { verifyAuth } from '@/lib/auth';
 
 export async function POST(request: Request) {
-  const { prompt, model, negative_prompt, n, size } = await request.json();
-
-  // The user ID is now passed from the middleware after token verification.
-  const userId = request.headers.get('x-user-id');
+  const userId = await verifyAuth(request as any);
   if (!userId) {
-    // This case should not be reached if middleware is configured correctly.
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
+
+  const { prompt, model, negative_prompt, n, size } = await request.json();
+
   console.log('Generate API: Authenticated userId:', userId);
 
   try {

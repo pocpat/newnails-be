@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import DesignModel from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
+import { verifyAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  await dbConnect();
-
-  const userId = request.headers.get('x-user-id');
+  const userId = await verifyAuth(request as any);
   if (!userId) {
-    // This case should not be reached if middleware is configured correctly.
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
+
+  await dbConnect();
 
   try {
     // Fetch designs for the authenticated user, sorted by creation date
