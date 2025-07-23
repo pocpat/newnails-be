@@ -7,9 +7,13 @@ import { initializeFirebaseAdmin } from './firebaseAdmin';
  * @returns The UID of the authenticated user, or null if authentication fails.
  */
 export async function verifyAuth(request: NextRequest): Promise<string | null> {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  const authHeader = request.headers.get('Authorization');
+  console.log('Auth: Received Authorization Header:', authHeader);
+
+  const token = authHeader?.replace('Bearer ', '');
 
   if (!token) {
+    console.log('Auth: No token found in Authorization header.');
     return null;
   }
 
