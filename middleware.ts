@@ -13,7 +13,9 @@ export function middleware(request: NextRequest) {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '');
   const isProtectedRoute = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
+  console.log('Incoming Headers:', request.headers);
   if (isProtectedRoute && !token) {
+    console.log('Auth: No token found in Authorization header.');
     return new NextResponse('Authorization token is required.', { status: 401 });
   }
 
