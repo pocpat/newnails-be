@@ -28,8 +28,9 @@ export async function POST(request: NextRequest) {
       prompt,
       model,
       negative_prompt,
-      n,
-      size,
+      num_images,
+      width,
+      height,
     });
 
     await incrementGenerationCount(userId);
