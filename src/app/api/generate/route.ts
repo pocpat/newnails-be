@@ -1,43 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateImage } from '@/utils/imageRouter';
-import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
-import { verifyAuth } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { checkRateLimit } from '../../../utils/rateLimiter';
+import { generateImage } from '../../../utils/imageRouter';
+import { generateMockDesigns } from '../../../utils/mockData'; // Import the mock data generator
 
-export async function POST(request: NextRequest) {
-  const userId = await verifyAuth(request);
-  if (!userId) {
-    return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
-  }
-
-  const { prompt, model, negative_prompt, n, size } = await request.json();
-
-  console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received prompt:', prompt);
-
+export async function POST(req: Request) {
   try {
-    if (!prompt || !model) {
-      return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { allowed, message } = await checkDailyGenerationLimit(userId);
-    if (!allowed) {
-      return NextResponse.json({ error: message }, { status: 429 });
+    // Check if API mocking is enabled
+    if (process.env.MOCK_API === 'true') {
+      console.log("API mocking is enabled. Returning mock data.");
+      const mockData = generateMockDesigns(5); // Generate 5 mock images
+      return NextResponse.json(mockData);
     }
 
-    const imageUrls = await generateImage({
-      prompt,
-      model,
-      negative_prompt,
-      n,
-      size,
-    });
+    // Rate limiting check
+    const isAllowed = await checkRateLimit(userId);
+    if (!isAllowed) {
+      return new NextResponse("Rate limit exceeded", { status: 429 });
+    }
 
-    await incrementGenerationCount(userId);
+    const body = await req.json();
+    const { prompt, model, n, size } = body;
+
+    if (!prompt) {
+      return new NextResponse("Prompt is required", { status: 400 });
+    }
+
+    const imageUrls = await generateImage({ prompt, model, n, size });
 
     return NextResponse.json({ imageUrls });
-  } catch (error: unknown) {
-    console.error('Error in /api/generate:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
+  } catch (error) {
+    console.error("Error in /api/generate:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
+
