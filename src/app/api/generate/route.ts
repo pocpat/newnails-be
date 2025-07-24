@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { checkRateLimit } from '../../../utils/rateLimiter';
+import { checkDailyGenerationLimit, checkTotalStorageLimit } from '../../../utils/rateLimiter';
 import { generateImage } from '../../../utils/imageRouter';
 import { generateMockDesigns } from '../../../utils/mockData'; // Import the mock data generator
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -18,10 +18,15 @@ export async function POST(req: Request) {
       return NextResponse.json(mockData);
     }
 
-    // Rate limiting check
-    const isAllowed = await checkRateLimit(userId);
-    if (!isAllowed) {
-      return new NextResponse("Rate limit exceeded", { status: 429 });
+    // Rate limiting checks
+    const dailyLimit = await checkDailyGenerationLimit(userId);
+    if (!dailyLimit.allowed) {
+      return new NextResponse(dailyLimit.message, { status: 429 });
+    }
+
+    const storageLimit = await checkTotalStorageLimit(userId);
+    if (!storageLimit.allowed) {
+      return new NextResponse(storageLimit.message, { status: 429 });
     }
 
     const body = await req.json();
