@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const { prompt, model, negative_prompt, n, size } = await request.json();
+  const { prompt, model, negative_prompt, num_images, width, height } = await request.json();
 
   console.log('Generate API: Authenticated userId:', userId);
   console.log('Generate API: Received prompt:', prompt);
