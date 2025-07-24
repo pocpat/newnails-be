@@ -7,8 +7,9 @@ interface ImageGenerationOptions {
   prompt: string;
   model: string;
   negative_prompt?: string;
-  n?: number; // Number of images to generate
-  size?: string; // Image size, e.g., "1024x1024"
+  num_images?: number; // Number of images to generate
+  width?: number; // Image width
+  height?: number; // Image height
 }
 
 export async function generateImage(options: ImageGenerationOptions): Promise<string[]> {
@@ -23,8 +24,9 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
   console.log('  URL:', IMAGEROUTER_BASE_URL);
   console.log('  Model:', options.model);
   console.log('  API Key (last 4 chars):', IMAGEROUTER_API_KEY.slice(-4));
-  console.log('  N:', options.n);
-  console.log('  Size:', options.size);
+  console.log('  Num Images:', options.num_images);
+  console.log('  Width:', options.width);
+  console.log('  Height:', options.height);
 
   try {
     const response = await axios.post(
@@ -32,8 +34,9 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
       {
         prompt: options.prompt,
         model: options.model,
-        n: options.n,
-        size: options.size,
+        num_images: options.num_images,
+        width: options.width,
+        height: options.height,
         negative_prompt: options.negative_prompt,
       },
       {
@@ -61,4 +64,3 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
     }
   }
 }
-
