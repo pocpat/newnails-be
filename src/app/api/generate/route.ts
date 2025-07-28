@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
   try {
     requestBody = await request.json();
     console.log('Generate API: Successfully parsed request body:', requestBody);
-  } catch (error: any) {
-    console.error('Generate API: Error parsing request body:', error.message);
+  } catch (error: unknown) {
+    console.error('Generate API: Error parsing request body:', (error as Error).message);
     return NextResponse.json({ error: 'Invalid request body format.' }, { status: 400 });
   }
 
