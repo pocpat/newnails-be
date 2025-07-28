@@ -9,14 +9,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const { prompt, model, negative_prompt, num_images, width, height, baseColor } = await request.json();
+  const { length, shape, style, colorConfig, baseColor, model, negative_prompt, num_images, width, height } = await request.json();
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received prompt:', prompt);
+  console.log('Generate API: Received design parameters:', { length, shape, style, colorConfig, baseColor, model });
 
   try {
-    if (!prompt || !model) {
-      return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
+    if (!length || !shape || !style || !colorConfig || !model) {
+      return NextResponse.json({ error: 'Length, shape, style, color configuration, and model are required.' }, { status: 400 });
     }
 
     const { allowed, message } = await checkDailyGenerationLimit(userId);
@@ -24,9 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
 
-    let fullPrompt = prompt;
-    if (baseColor) {
-      fullPrompt = `A detailed closeup Nail design with ${baseColor} as a base color, and ${prompt}`;
+    let fullPrompt = `High quality manicure image , made by professional photographer. Nail design with ${length} length, ${shape} shape, ${style} style,`;
+
+    if (colorConfig === "Select" && baseColor) {
+      fullPrompt += ` and a base color of ${baseColor} with a ${colorConfig} color configuration.`;
+    } else {
+      fullPrompt += ` and ${colorConfig} color configuration.`;
     }
 
     const imageUrls = await generateImage({
