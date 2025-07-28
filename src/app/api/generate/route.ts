@@ -9,11 +9,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const requestBody = await request.json();
+  let requestBody;
+  try {
+    requestBody = await request.json();
+    console.log('Generate API: Received request body:', requestBody);
+  } catch (error) {
+    console.error('Generate API: Error parsing request body:', error);
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+  }
+
   const { length, shape, style, colorConfig, baseColor, model, negative_prompt, num_images, width, height } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received request body:', requestBody);
   console.log('Generate API: Parsed design parameters:', { length, shape, style, colorConfig, baseColor, model });
 
   try {
