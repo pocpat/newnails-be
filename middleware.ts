@@ -10,8 +10,10 @@ const protectedPaths = [
 ];
 
 export function middleware(request: NextRequest) {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
-  const isProtectedRoute = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+  const authHeader = request.headers.get('Authorization');
+  console.log('Middleware: Authorization Header:', authHeader);
+  const token = authHeader?.replace('Bearer ', '');
+  console.log('Middleware: Extracted Token:', token ? 'Token present' : 'Token missing');
 
   console.log('Incoming Headers:', request.headers);
   if (isProtectedRoute && !token) {
