@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const { prompt, model, negative_prompt, num_images, width, height } = await request.json();
+  const { prompt, model, negative_prompt, num_images, width, height, baseColor } = await request.json();
 
   console.log('Generate API: Authenticated userId:', userId);
   console.log('Generate API: Received prompt:', prompt);
@@ -24,8 +24,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
 
+    let fullPrompt = prompt;
+    if (baseColor) {
+      fullPrompt = `A detailed closeup Nail design with ${baseColor} as a base color, and ${prompt}`;
+    }
+
     const imageUrls = await generateImage({
-      prompt,
+      prompt: fullPrompt,
       model,
       negative_prompt,
       num_images,
