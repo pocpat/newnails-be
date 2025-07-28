@@ -9,10 +9,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const { length, shape, style, colorConfig, baseColor, model, negative_prompt, num_images, width, height } = await request.json();
+  const requestBody = await request.json();
+  const { length, shape, style, colorConfig, baseColor, model, negative_prompt, num_images, width, height } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received design parameters:', { length, shape, style, colorConfig, baseColor, model });
+  console.log('Generate API: Received request body:', requestBody);
+  console.log('Generate API: Parsed design parameters:', { length, shape, style, colorConfig, baseColor, model });
 
   try {
     if (!length || !shape || !style || !colorConfig || !model) {
