@@ -47,3 +47,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
 }
+
+
+// change for push
