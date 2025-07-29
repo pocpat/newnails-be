@@ -19,29 +19,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body format.' }, { status: 400 });
   }
   
-  // --- START OF MODIFICATION ---
-
-  // Check if the old 'prompt' based payload is being sent.
-  if (requestBody.prompt && !requestBody.length) {
-    console.warn(`Generate API: Received an outdated request format from user ${userId} with a 'prompt' key. This is likely a frontend caching issue.`);
-    return NextResponse.json(
-      { error: 'Outdated API request. Please clear app cache or restart the app. Expected structured parameters, but received a prompt string.' }, 
-      { status: 400 }
-    );
-  }
-
-  const { length, shape, style, colorConfig, baseColor, model, negative_prompt, num_images, width, height } = requestBody;
-
-  // --- END OF MODIFICATION ---
-
+  const { prompt, model, negative_prompt, num_images, width, height, baseColor } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Parsed design parameters:', { length, shape, style, colorConfig, baseColor, model });
+  console.log('Generate API: Received prompt:', prompt);
 
   try {
-    // This validation is still good!
-    if (!length || !shape || !style || !colorConfig || !model) {
-      return NextResponse.json({ error: 'Length, shape, style, color configuration, and model are required.' }, { status: 400 });
+    if (!prompt || !model) {
+      return NextResponse.json({ error: 'Prompt and model are required.' }, { status: 400 });
     }
 
     const { allowed, message } = await checkDailyGenerationLimit(userId);
@@ -49,12 +34,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
 
-    let fullPrompt = `High quality manicure image , made by professional photographer. Nail design with ${length} length, ${shape} shape, ${style} style,`;
-
-    if (colorConfig === "Select" && baseColor) {
-      fullPrompt += ` and a base color of ${baseColor}.`; // Simplified the prompt slightly
-    } else {
-      fullPrompt += ` and ${colorConfig} color configuration.`;
+    let fullPrompt = prompt;
+    if (baseColor) {
+      fullPrompt = `A detailed closeup Nail design with ${baseColor} as a base color, and ${prompt}`;
     }
 
     const imageUrls = await generateImage({
