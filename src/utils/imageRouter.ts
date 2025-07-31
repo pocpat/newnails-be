@@ -7,26 +7,16 @@ interface ImageGenerationOptions {
   prompt: string;
   model: string;
   negative_prompt?: string;
-  num_images?: number; // Number of images to generate
-  width?: number; // Image width
-  height?: number; // Image height
+  num_images?: number;
+  width?: number;
+  height?: number;
 }
 
 export async function generateImage(options: ImageGenerationOptions): Promise<string[]> {
-  console.log('ImageRouter: Checking for API Key...');
   if (!IMAGEROUTER_API_KEY) {
-    console.error('ImageRouter Error: IMAGEROUTER_API_KEY is not defined in the environment.');
+    console.error('ImageRouter Error: IMAGEROUTER_API_KEY is not defined.');
     throw new Error('Configuration error: Image generation API key is missing.');
   }
-  console.log('ImageRouter: API Key is present. Type:', typeof IMAGEROUTER_API_KEY, 'Length:', IMAGEROUTER_API_KEY.length);
-
-  console.log('Attempting to call ImageRouter API:');
-  console.log('  URL:', IMAGEROUTER_BASE_URL);
-  console.log('  Model:', options.model);
-  console.log('  API Key (last 4 chars):', IMAGEROUTER_API_KEY.slice(-4));
-  console.log('  Num Images:', options.num_images);
-  console.log('  Width:', options.width);
-  console.log('  Height:', options.height);
 
   try {
     const response = await axios.post(
@@ -47,18 +37,24 @@ export async function generateImage(options: ImageGenerationOptions): Promise<st
       }
     );
 
-    console.log('ImageRouter API response data:', response.data);
     if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data.map((item: { url: string }) => item.url) as string[];
+      return response.data.data.map((item: { url: string }) => item.url);
     } else {
       console.error('Unexpected ImageRouter API response format:', response.data);
       throw new Error('Invalid response from ImageRouter API.');
     }
-  } catch (error: unknown) {
+  } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error('ImageRouter API Axios Error:', error.response?.status, error.response?.data || error.message);
-      throw new Error(`ImageRouter API Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`);
+      // Log the detailed error from the API response
+      const status = error.response?.status;
+      const data = error.response?.data;
+      console.error(`ImageRouter API Axios Error: Status ${status}`, data);
+      
+      // Create a more informative error message
+      const message = data?.error?.message || data?.message || 'An unknown API error occurred.';
+      throw new Error(`ImageRouter API Error: ${status} - ${message}`);
     } else {
+      // Handle non-Axios errors
       console.error('Unexpected error during image generation:', error);
       throw new Error('An unexpected error occurred during image generation.');
     }
