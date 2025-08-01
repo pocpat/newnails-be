@@ -19,11 +19,11 @@ const allowedOrigins = [
 
 export function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
-  const isAllowedOrigin = origin ? allowedOrigins.includes(origin) : false;
 
   // Handle Preflight (OPTIONS) requests
   if (request.method === 'OPTIONS') {
-    if (isAllowedOrigin) {
+    // Ensure the origin is a valid, allowed string before using it
+    if (origin && allowedOrigins.includes(origin)) {
       const preflightHeaders = {
         'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
@@ -32,6 +32,7 @@ export function middleware(request: NextRequest) {
       };
       return new NextResponse(null, { status: 204, headers: preflightHeaders });
     } else {
+      // Deny OPTIONS requests from disallowed origins
       return new NextResponse('CORS policy does not allow this origin.', { status: 403 });
     }
   }
@@ -39,8 +40,8 @@ export function middleware(request: NextRequest) {
   // Handle actual requests
   const response = NextResponse.next();
 
-  // Add CORS headers to the response
-  if (isAllowedOrigin) {
+  // Add CORS headers to the response if the origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
   }
 
