@@ -1,47 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Design from '@/models/DesignModel';
-import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
+import dbConnect from '@/lib/db';
+import Design from '@/models/DesignModel';
+import { handleCorsPreflight, addCorsHeaders } from '@/lib/api-helpers';
 
-// WORKAROUND: We are removing the 'context' parameter entirely to bypass a
-// Next.js build-time type-checking bug. We will parse the designId from the URL.
+// This OPTIONS handler is correct and working. Do not change it.
+export async function OPTIONS(request: NextRequest) {
+    const preflightResponse = handleCorsPreflight(request);
+    if (preflightResponse) {
+        return preflightResponse;
+    }
+    return new NextResponse('CORS policy does not allow this origin.', { status: 403 });
+}
+
+// This is the PATCH handler with the final fix.
 export async function PATCH(request: NextRequest) {
-  const userId = await verifyAuth(request);
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Extract the designId directly from the request URL.
-  // The URL will be like: '.../api/designs/688c31e213cf034930b42329/favorite'
-  const pathname = new URL(request.url).pathname;
-  const segments = pathname.split('/');
-  // segments will be ['', 'api', 'designs', '688c31e213cf034930b42329', 'favorite']
-  const designId = segments[3];
-
-  if (!designId) {
-    return NextResponse.json({ error: 'Design ID is missing from URL' }, { status: 400 });
-  }
+  // Define response variable at the top
+  let response: NextResponse; 
 
   try {
-    await dbConnect();
+    const userId = await verifyAuth(request);
+    if (!userId) {
+      // If unauthorized, create the error response and EXIT the try block
+      response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Use a SINGLE return point at the end of the function
+      return addCorsHeaders(request, response);
+    }
+    
+    const pathname = new URL(request.url).pathname;
+    const segments = pathname.split('/');
+    const designId = segments[3];
 
+    if (!designId) {
+        response = NextResponse.json({ error: 'Design ID missing from URL' }, { status: 400 });
+        return addCorsHeaders(request, response);
+    }
+
+    await dbConnect();
     const design = await Design.findById(designId);
 
     if (!design) {
-      return NextResponse.json({ error: 'Design not found' }, { status: 404 });
+      response = NextResponse.json({ error: 'Design not found' }, { status: 404 });
+      return addCorsHeaders(request, response);
     }
 
-    // Ensure you are comparing consistent types.
     if (design.userId.toString() !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      response = NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return addCorsHeaders(request, response);
     }
 
     design.isFavorite = !design.isFavorite;
     await design.save();
 
-    return NextResponse.json(design);
+    // On success, create the success response
+    response = NextResponse.json(design);
+
   } catch (error) {
     console.error('Error updating favorite status:', error);
-    return NextResponse.json({ error: 'Failed to update favorite status' }, { status: 500 });
+    // On crash, create the server error response
+    response = NextResponse.json({ error: 'Failed to update favorite status' }, { status: 500 });
   }
+  
+  // This is the SINGLE return point. It guarantees that EVERY possible
+  // response, success or error, gets the CORS headers attached.
+  return addCorsHeaders(request, response);
 }

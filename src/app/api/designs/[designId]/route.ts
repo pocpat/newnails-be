@@ -1,52 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { del } from '@vercel/blob';
-import Design from '@/models/DesignModel';
-import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
+import dbConnect from '@/lib/db';
+import Design from '@/models/DesignModel';
+import { handleCorsPreflight, addCorsHeaders } from '@/lib/api-helpers';
 
-// The same fix is applied here: destructure 'params' directly in the
-// function signature to avoid the type conflict.
+export async function OPTIONS(request: NextRequest) {
+    const preflightResponse = handleCorsPreflight(request);
+    
+    if (preflightResponse) {
+        return preflightResponse; // If origin is allowed, return the response with headers
+    }
 
-export async function DELETE(
-  request: NextRequest,
-context: any // eslint-disable-line @typescript-eslint/no-explicit-any
-) {
-  const userId = await verifyAuth(request);
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    // If origin is NOT allowed, explicitly deny the request.
+    // This gives a clearer error than a blank 204.
+    return new NextResponse('CORS policy does not allow this origin.', { status: 403 });
+}
 
-  // 'designId' is now directly available from the destructured 'params'
-  const { designId } = context.params;
-
-  if (!designId) {
-    return NextResponse.json({ error: 'Design ID is required' }, { status: 400 });
-  }
-
+// WORKAROUND: Use ONLY the 'request' parameter to avoid the Next.js build bug.
+export async function DELETE(request: NextRequest) {
+  let response: NextResponse;
   try {
+    const userId = await verifyAuth(request);
+    if (!userId) {
+      response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return addCorsHeaders(request, response);
+    }
+
+    // Extract the designId directly from the request URL
+    const pathname = new URL(request.url).pathname;
+    const segments = pathname.split('/'); // e.g., ['', 'api', 'designs', 'THE_ID']
+    const designId = segments[3];
+
+    if (!designId) {
+        response = NextResponse.json({ error: 'Design ID missing from URL' }, { status: 400 });
+        return addCorsHeaders(request, response);
+    }
+
     await dbConnect();
 
-    const design = await Design.findById(designId);
+    const designToDelete = await Design.findOne({ _id: designId, userId });
 
-    if (!design) {
-      return NextResponse.json({ error: 'Design not found' }, { status: 404 });
+    if (!designToDelete) {
+      response = NextResponse.json({ error: 'Design not found or you do not have permission to delete it' }, { status: 404 });
+      return addCorsHeaders(request, response);
     }
 
-    if (design.userId.toString() !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Delete the image from Vercel Blob storage
-    if (design.permanentUrl) {
-      await del(design.permanentUrl);
-    }
-
-    // Delete the design from the database
     await Design.findByIdAndDelete(designId);
 
-    return NextResponse.json({ message: 'Design deleted successfully' });
+    response = NextResponse.json({ message: 'Design deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error deleting design:', error);
-    return NextResponse.json({ error: 'Failed to delete design' }, { status: 500 });
+    response = NextResponse.json({ error: 'Failed to delete design' }, { status: 500 });
   }
+
+  return addCorsHeaders(request, response);
 }
