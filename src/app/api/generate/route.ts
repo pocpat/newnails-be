@@ -9,7 +9,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  const { prompt, model, negative_prompt, num_images, width, height, baseColor } = await request.json();
+  console.log('Generate API: Attempting to parse request body...');
+  let requestBody;
+  try {
+    requestBody = await request.json();
+    console.log('Generate API: Successfully parsed request body:', requestBody);
+  } catch (error: unknown) {
+    console.error('Generate API: Error parsing request body:', (error as Error).message);
+    return NextResponse.json({ error: 'Invalid request body format.' }, { status: 400 });
+  }
+  
+  const { prompt, model, negative_prompt, num_images, width, height, baseColor } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
   console.log('Generate API: Received prompt:', prompt);
@@ -46,7 +56,10 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
+
 }
 
 
-// change for push
+
+
+
