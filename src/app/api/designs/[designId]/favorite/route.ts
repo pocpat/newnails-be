@@ -3,20 +3,23 @@ import Design from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
-// The fix is to destructure the params directly from the context object
-// and provide the type inline. This avoids the conflict with Next.js's
-// internal type generation during the build process.
+// Define a specific type for the context parameter to ensure
+// the build process correctly identifies the route signature.
+interface PatchContext {
+  params: {
+    designId: string;
+  };
+}
 
 export async function PATCH(
   request: NextRequest,
-    context: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  context: PatchContext
 ) {
   const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 'designId' is now directly available from the destructured 'params'
   const { designId } = context.params;
 
   if (!designId) {
