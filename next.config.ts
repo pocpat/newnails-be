@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push('firebase-admin');
