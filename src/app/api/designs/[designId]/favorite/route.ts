@@ -3,24 +3,23 @@ import Design from '@/models/DesignModel';
 import dbConnect from '@/lib/db';
 import { verifyAuth } from '@/lib/auth';
 
-// The fix is to destructure the params directly from the context object
-// and provide the type inline. This avoids the conflict with Next.js's
-// internal type generation during the build process.
-
-export async function PATCH(
-  request: NextRequest,
-    context: any // eslint-disable-line @typescript-eslint/no-explicit-any
-) {
+// WORKAROUND: We are removing the 'context' parameter entirely to bypass a
+// Next.js build-time type-checking bug. We will parse the designId from the URL.
+export async function PATCH(request: NextRequest) {
   const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 'designId' is now directly available from the destructured 'params'
-  const { designId } = context.params;
+  // Extract the designId directly from the request URL.
+  // The URL will be like: '.../api/designs/688c31e213cf034930b42329/favorite'
+  const pathname = new URL(request.url).pathname;
+  const segments = pathname.split('/');
+  // segments will be ['', 'api', 'designs', '688c31e213cf034930b42329', 'favorite']
+  const designId = segments[3];
 
   if (!designId) {
-    return NextResponse.json({ error: 'Design ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Design ID is missing from URL' }, { status: 400 });
   }
 
   try {
@@ -32,9 +31,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Design not found' }, { status: 404 });
     }
 
-    // Important: Ensure you are comparing consistent types.
-    // If 'userId' is a string from verifyAuth and design.userId is an ObjectId,
-    // converting the ObjectId to a string is the correct approach.
+    // Ensure you are comparing consistent types.
     if (design.userId.toString() !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
