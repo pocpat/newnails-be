@@ -10,10 +10,15 @@ export async function verifyAuth(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get('Authorization');
   console.log('Auth: Received Authorization Header:', authHeader);
 
-  const token = authHeader?.replace('Bearer ', '');
+  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    console.log('Auth: No valid Bearer token found in Authorization header.');
+    return null;
+  }
+
+  const token = authHeader.replace('Bearer ', '');
 
   if (!token) {
-    console.log('Auth: No token found in Authorization header.');
+    console.log('Auth: Token is empty after removing "Bearer " prefix.');
     return null;
   }
 
@@ -21,8 +26,17 @@ export async function verifyAuth(request: NextRequest): Promise<string | null> {
     const firebaseAdmin = initializeFirebaseAdmin();
     const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
     return decodedToken.uid;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error verifying Firebase ID token in verifyAuth:', error);
+    // Type guard to safely access the error message
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    if (errorMessage.includes('Firebase environment variables')) {
+        console.error('################################################################');
+        console.error('## CRITICAL: Firebase environment variables are not set in the Vercel deployment.');
+        console.error('## Please add FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY to your Vercel project settings.');
+        console.error('################################################################');
+    }
     return null;
   }
 }
