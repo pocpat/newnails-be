@@ -10,10 +10,15 @@ export async function verifyAuth(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get('Authorization');
   console.log('Auth: Received Authorization Header:', authHeader);
 
-  const token = authHeader?.replace('Bearer ', '');
+  if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    console.log('Auth: No valid Bearer token found in Authorization header.');
+    return null;
+  }
+
+  const token = authHeader.replace('Bearer ', '');
 
   if (!token) {
-    console.log('Auth: No token found in Authorization header.');
+    console.log('Auth: Token is empty after removing "Bearer " prefix.');
     return null;
   }
 
