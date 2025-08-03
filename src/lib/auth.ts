@@ -21,8 +21,14 @@ export async function verifyAuth(request: NextRequest): Promise<string | null> {
     const firebaseAdmin = initializeFirebaseAdmin();
     const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
     return decodedToken.uid;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error verifying Firebase ID token in verifyAuth:', error);
+    if (error.message.includes('Firebase environment variables')) {
+        console.error('################################################################');
+        console.error('## CRITICAL: Firebase environment variables are not set in the Vercel deployment.');
+        console.error('## Please add FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY to your Vercel project settings.');
+        console.error('################################################################');
+    }
     return null;
   }
 }
