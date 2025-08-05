@@ -1,27 +1,37 @@
 import * as admin from 'firebase-admin';
 
+// NEW LOG TO FORCE A REBUILD
+console.log('Initializing Firebase Admin SDK (v2)...');
+
 export function initializeFirebaseAdmin(): admin.app.App {
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
 
-  // --- ADD THIS CHECK ---
-  if (
-    !process.env.FIREBASE_PROJECT_ID ||
-    !process.env.FIREBASE_CLIENT_EMAIL ||
-    !process.env.FIREBASE_PRIVATE_KEY
-  ) {
-    throw new Error('Firebase environment variables are not set correctly.');
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    throw new Error(
+      'Firebase environment variable FIREBASE_SERVICE_ACCOUNT_BASE64 is not set.'
+    );
   }
-  // --------------------
 
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  try {
+    const serviceAccountJson = Buffer.from(
+      process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+      'base64'
+    ).toString('utf-8');
 
-  return admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey,
-    }),
-  });
+    const serviceAccount = JSON.parse(serviceAccountJson);
+
+    return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+    throw new Error('Could not initialize Firebase Admin SDK. Check the FIREBASE_SERVICE_ACCOUNT_BASE64 variable.');
+  }
+}
+
+// Optional: A function to get the initialized app instance
+export function getFirebaseAdmin() {
+  return initializeFirebaseAdmin();
 }
