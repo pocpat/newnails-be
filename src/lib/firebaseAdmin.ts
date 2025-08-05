@@ -1,26 +1,41 @@
 import * as admin from 'firebase-admin';
 
-/**
- * A singleton pattern to initialize Firebase Admin SDK only once.
- * This prevents re-initialization on every hot-reload in development
- * and on every function invocation in a serverless environment.
- */
+
+// NEW LOG TO FORCE A REBUILD
+console.log('Initializing Firebase Admin SDK (v2)...');
+
+
 export function initializeFirebaseAdmin(): admin.app.App {
   // If the app is already initialized, return the existing instance.
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
 
-// Get the key from environment variables.
-const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_JSON!;
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    throw new Error(
+      'Firebase environment variable FIREBASE_SERVICE_ACCOUNT_BASE64 is not set.'
+    );
+  }
 
-// Repair the newline characters that get corrupted by Vercel.
-const repairedServiceAccountString = serviceAccountString.replace(/\\n/g, '\n');
+  try {
+    const serviceAccountJson = Buffer.from(
+      process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+      'base64'
+    ).toString('utf-8');
 
-// Now parse the repaired string.
-const serviceAccount = JSON.parse(repairedServiceAccountString);
-  // Initialize the Firebase Admin SDK.
-  return admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+    const serviceAccount = JSON.parse(serviceAccountJson);
+
+    return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+    throw new Error('Could not initialize Firebase Admin SDK. Check the FIREBASE_SERVICE_ACCOUNT_BASE64 variable.');
+  }
+}
+
+// Optional: A function to get the initialized app instance
+export function getFirebaseAdmin() {
+  return initializeFirebaseAdmin();
+
 }
