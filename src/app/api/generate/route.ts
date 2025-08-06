@@ -3,27 +3,63 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
 import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
 import { verifyAuth } from '@/lib/auth';
+import { withCors } from '@/lib/cors'; // Import the CORS middleware
 
-export async function POST(request: NextRequest) {
+interface GenerateApiRequest {
+  length: string;
+  shape: string;
+  style: string;
+  model: string;
+  color?: string;
+  baseColor?: string;
+  negative_prompt?: string;
+  num_images?: number;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Constructs the prompt for image generation based on user selections.
+ * @param details - The user's selections for the nail design.
+ * @returns A string representing the final prompt.
+ */
+function buildPrompt(details: Omit<GenerateApiRequest, 'model' | 'negative_prompt' | 'num_images' | 'width' | 'height'>): string {
+  const { length, shape, style, color: colorConfig, baseColor } = details;
+
+  const promptParts = [
+    "award-winning photograph", "professional manicure", "macro photography", "studio lighting",
+    "detailed closeup of a woman's hand with flawless skin, showcasing a stunning nail design.",
+    `The design features ${length}, ${shape}-shaped nails in a ${style} style.`
+  ];
+
+  if (baseColor && colorConfig && colorConfig !== 'Pick a Base Color' && colorConfig !== 'unified') {
+    promptParts.push(`The color palette uses ${baseColor} as a base, arranged in a beautiful ${colorConfig} color scheme.`);
+  } else if (baseColor) {
+    promptParts.push(`The design prominently features the color ${baseColor}.`);
+  } else {
+    promptParts.push(`The design features a stunning and creative color palette.`);
+  }
+
+  promptParts.push("beautiful and elegant", "sharp focus", "high-resolution", "bokeh background.");
+
+  return promptParts.join(' ');
+}
+
+async function handler(request: NextRequest): Promise<Response> {
   const userId = await verifyAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
   }
 
-  let requestBody;
+  let requestBody: GenerateApiRequest;
   try {
     requestBody = await request.json();
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    console.error('Generate API - Body Parse Error:', error);
+    return NextResponse.json({ error: 'Invalid request body. Could not parse JSON.' }, { status: 400 });
   }
   
-  // 1. Destructure ALL the raw selections from the request body
   const {
-    length,
-    shape,
-    style,
-    color: colorConfig, // Rename 'color' to 'colorConfig' for clarity
-    baseColor,
     model,
     negative_prompt,
     num_images,
@@ -32,11 +68,10 @@ export async function POST(request: NextRequest) {
   } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received raw selections:', { length, shape, style, colorConfig, baseColor });
+  console.log('Generate API: Received raw selections:', requestBody);
 
   try {
-    // Basic validation
-    if (!length || !shape || !style || !model) {
+    if (!requestBody.length || !requestBody.shape || !requestBody.style || !model) {
       return NextResponse.json({ error: 'Length, shape, style, and model are required.' }, { status: 400 });
     }
 
@@ -45,27 +80,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 429 });
     }
 
-    // --- 2. BUILD THE PROFESSIONAL PROMPT ---
-
-    // Part A: Build the Nail Details
-    const nailDetails = `${length}, ${shape}-shaped nails in a ${style} style`;
-
-    // Part B: Build the Color Details with logic
-    let colorDetails = '';
-    if (baseColor && colorConfig && colorConfig !== 'Pick a Base Color' && colorConfig !== 'unified') {
-      colorDetails = `The color palette uses ${baseColor} as a base, arranged in a beautiful ${colorConfig} color scheme.`;
-    } else if (baseColor) {
-      colorDetails = `The design prominently features the color ${baseColor}.`;
-    } else {
-      colorDetails = `The design features a stunning and creative color palette.`;
-    }
-
-    // Part C: Assemble the Final Prompt using the high-quality template
-    const finalPrompt = `award-winning photograph, professional manicure, macro photography, studio lighting, detailed closeup of a woman's hand with flawless skin, showcasing a stunning nail design. The design features ${nailDetails}. ${colorDetails} beautiful and elegant, sharp focus, high-resolution, bokeh background.`;
+    const finalPrompt = buildPrompt(requestBody);
     
     console.log('Generate API: Constructed Final Prompt:', finalPrompt);
 
-    // 3. Call the image generation service with the final prompt
     const imageUrls = await generateImage({
       prompt: finalPrompt,
       model,
@@ -85,3 +103,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
 }
+
+// Wrap the handler with the CORS middleware
+export const POST = withCors(handler);
