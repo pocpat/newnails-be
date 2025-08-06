@@ -1,9 +1,12 @@
 import * as admin from 'firebase-admin';
 
+
 // NEW LOG TO FORCE A REBUILD
 console.log('Initializing Firebase Admin SDK (v2)...');
 
+
 export function initializeFirebaseAdmin(): admin.app.App {
+  // If the app is already initialized, return the existing instance.
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
@@ -34,4 +37,5 @@ export function initializeFirebaseAdmin(): admin.app.App {
 // Optional: A function to get the initialized app instance
 export function getFirebaseAdmin() {
   return initializeFirebaseAdmin();
+
 }
