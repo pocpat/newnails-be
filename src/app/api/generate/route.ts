@@ -53,7 +53,19 @@ async function handler(request: NextRequest): Promise<Response> {
 
   let requestBody: GenerateApiRequest;
   try {
-    requestBody = await request.json();
+ const rawBody = await request.text();
+    console.log('=== BACKEND DEBUG ===');
+    console.log('Raw request body:', rawBody);
+    
+    requestBody = JSON.parse(rawBody);
+    console.log('Parsed request body:', JSON.stringify(requestBody, null, 2));
+    console.log('Request body keys:', Object.keys(requestBody));
+    console.log('Length value:', requestBody.length, 'Type:', typeof requestBody.length);
+    console.log('Shape value:', requestBody.shape, 'Type:', typeof requestBody.shape);
+    console.log('Style value:', requestBody.style, 'Type:', typeof requestBody.style);
+    console.log('=====================');
+
+   // requestBody = await request.json();
   } catch (error) {
     console.error('Generate API - Body Parse Error:', error);
     return NextResponse.json({ error: 'Invalid request body. Could not parse JSON.' }, { status: 400 });
@@ -100,6 +112,18 @@ async function handler(request: NextRequest): Promise<Response> {
   } catch (error: unknown) {
     console.error('Error in /api/generate:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+
+    // ⭐ NEW: Check if it's a rate limit error and return mock response
+    if (errorMessage.includes('Daily limit')) {
+      console.log('Daily limit reached, returning mock image for testing');
+      return NextResponse.json({ 
+        imageUrls: [
+          'https://placeholder.pics/svg/300/7B96BD-B795C0/2D1980-84739C/moke%20image'
+        ]
+      });
+    }
+    
+    // For all other errors, return the original error response
     return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
 }
