@@ -118,7 +118,7 @@ async function handler(request: NextRequest): Promise<Response> {
       console.log('Daily limit reached, returning mock image for testing');
       return NextResponse.json({ 
         imageUrls: [
-          'https://placeholder.pics/svg/300/7B96BD-B795C0/2D1980-84739C/moke%20image'
+          'https://via.placeholder.com/512x512.png?text=Daily+Limit+Reached'
         ]
       });
     }
