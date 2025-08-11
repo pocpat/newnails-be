@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💅 Dipsy API: The Backend for the AI Nail Art Studio
 
-## Getting Started
+Welcome to the server-side of **Dipsy**, the AI-powered nail art design application. This backend is built with Next.js and serves as the brain for both the mobile and web frontends.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### ✨ Core Technologies
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+-   **Framework**: ▲ Next.js (App Router)
+-   **Language**: 🔵 TypeScript
+-   **Database**: 🍃 MongoDB with Mongoose
+-   **Authentication**: 🔥 Firebase Authentication
+-   **Image Storage**: ▲ Vercel Blob
+-   **AI Generation**: 🤖 imagerouter.io
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🚀 Key Features
 
-## Learn More
+-   **User Management**: Secure user registration and login handled by Firebase.
+-   **AI-Powered Generation**: Takes raw user selections (length, shape, style, color) and constructs detailed prompts to generate unique nail art images.
+-   **Design Management**: A full suite of CRUD APIs to create, retrieve, and manage user-saved designs.
+-   **Rate Limiting**: Built-in limits to ensure fair usage (20 generations/day, 40 saved designs/user).
+-   **Fun Facts**: An extra endpoint to provide entertaining facts to users during loading states.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔌 API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+All endpoints are protected and require a valid Firebase JWT.
 
-## Deploy on Vercel
+-   `POST /api/generate`
+    -   **Action**: Generates a set of nail art images based on user selections.
+    -   **Body**: `{ "length": "short", "shape": "round", "style": "french", "color": "contrast", "baseColor": "#ff0000" }`
+-   `POST /api/save-design`
+    -   **Action**: Saves a generated image to the user's collection.
+    -   **Body**: `{ "imageUrl": "https://temp-url.com/image.png" }`
+-   `GET /api/my-designs`
+    -   **Action**: Fetches all saved designs for the authenticated user.
+-   `DELETE /api/designs/:designId`
+    -   **Action**: Deletes a specific design.
+-   `PATCH /api/designs/:designId/favorite`
+    -   **Action**: Toggles the `isFavorite` status of a design.
+-   `GET /api/fun-facts/random`
+    -   **Action**: Returns a random fun fact from the database.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 🛠️ Setup & Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd newnails-be
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Set up environment variables:**
+    -   Create a `.env.local` file in the root directory.
+    -   Add the following required variables:
+        ```env
+        # Firebase
+        NEXT_PUBLIC_FIREBASE_API_KEY="..."
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+        NEXT_PUBLIC_FIREBASE_APP_ID="..."
+        FIREBASE_CLIENT_EMAIL="..."
+        FIREBASE_PRIVATE_KEY="..."
+
+        # MongoDB
+        MONGODB_URI="..."
+
+        # Image Generation & Storage
+        IMAGEROUTER_API_KEY="..."
+        BLOB_READ_WRITE_TOKEN="..."
+        ```
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+    The API will be available at `http://localhost:3000`.
+
+---
+
+### 🖼️ Screenshots
+
+*(Placeholder for architecture diagrams or backend service dashboards)*
+
+`[-------------------------]`
+
+`[   Architecture Diagram  ]`
+
+`[-------------------------]`
