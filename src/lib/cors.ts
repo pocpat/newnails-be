@@ -9,7 +9,7 @@ type AppRouteHandlerFn = (req: NextRequest, ...args: any[]) => Promise<Response>
 const allowedOrigins =
   process.env.NODE_ENV === 'production'
     ? [
-        'https://your-production-web-frontend.com', // TODO: Add your production web app URL
+        'https://newnails-web-fe.vercel.app/', 
         'https://your-production-mobile-frontend.com', // TODO: Add your production mobile app URL if applicable
       ]
     : [

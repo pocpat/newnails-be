@@ -4,6 +4,7 @@ import { verifyAuth } from '@/lib/auth';
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8081',
+  'https://newnails-web-fe.vercel.app',
   // Add production URLs here later
 ];
 
