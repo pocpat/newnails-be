@@ -89,7 +89,13 @@ async function handler(request: NextRequest): Promise<Response> {
 
     const { allowed, message } = await checkDailyGenerationLimit(userId);
     if (!allowed) {
-      return NextResponse.json({ error: message }, { status: 429 });
+      console.log('Daily generation limit reached for user:', userId);
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      return NextResponse.json({
+        limitReached: true,
+        message,
+        imageUrls: [`${baseUrl}/images/ph.png`],
+      });
     }
 
     const finalPrompt = buildPrompt(requestBody);
@@ -115,10 +121,10 @@ async function handler(request: NextRequest): Promise<Response> {
 
     // ⭐ NEW: Check if it's a rate limit error and return mock response
     if (errorMessage.includes('Daily limit')) {
-      console.log('Daily limit reached, returning mock image for testing');
+      console.log('Daily limit reached, returning placeholder image');
       return NextResponse.json({ 
         imageUrls: [
-          'https://via.placeholder.com/512x512.png?text=Daily+Limit+Reached'
+          '/images/ph.png'
         ]
       });
     }
