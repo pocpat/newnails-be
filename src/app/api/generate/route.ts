@@ -113,7 +113,7 @@ async function handler(request: NextRequest): Promise<Response> {
 
     await incrementGenerationCount(userId);
 
-    return NextResponse.json({ imageUrls });
+    return NextResponse.json({ imageUrls, prompt: finalPrompt });
 
   } catch (error: unknown) {
     console.error('Error in /api/generate:', error);
