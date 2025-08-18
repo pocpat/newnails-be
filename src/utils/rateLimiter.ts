@@ -6,7 +6,6 @@ const TOTAL_STORAGE_LIMIT = 40;
 // This function is a placeholder and needs to be implemented with a proper user model if you want to track daily limits.
 // For now, we will just check the total storage limit.
 export async function checkDailyGenerationLimit(userId: string): Promise<{ allowed: boolean; message?: string }> {
-  // TODO: Implement daily generation limit check with a user model in MongoDB.
   // This will require adding a user schema with fields for lastGenerationDate and generationCount.
   console.log(`Daily generation limit check for user ${userId} is not yet implemented. Allowing request.`);
   return { allowed: true };

@@ -28,7 +28,7 @@ function buildPrompt(details: Omit<GenerateApiRequest, 'model' | 'negative_promp
 
   const promptParts = [
     "award-winning photograph", "professional manicure", "macro photography", "studio lighting",
-    "detailed closeup of a woman's hand with flawless skin, showcasing a stunning nail design.",
+    "detailed closeup of a woman's left hand with flawless skin, showcasing a beautiful nail design.",
     `The design features ${length}, ${shape}-shaped nails in a ${style} style.`
   ];
 
