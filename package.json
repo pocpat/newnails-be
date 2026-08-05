@@ -18,7 +18,7 @@
     "firebase-admin": "^13.4.0",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.3",
-    "next": "15.4.1",
+    "next": "^15.5.22",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -32,7 +32,7 @@
     "@types/react-dom": "^19",
     "babel-jest": "^30.0.4",
     "eslint": "^9",
-    "eslint-config-next": "15.4.1",
+    "eslint-config-next": "^15.5.22",
     "jest": "^30.0.4",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.0",
