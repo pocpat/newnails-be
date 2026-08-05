@@ -1,15 +1,69 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { generateImage } from '@/utils/imageRouter';
 import { checkDailyGenerationLimit, incrementGenerationCount } from '@/utils/rateLimiter';
 import { verifyAuth } from '@/lib/auth';
-import { withCors } from '@/lib/cors'; // Import the CORS middleware
+import { withCors } from '@/lib/cors';
+
+// In-memory cache for free models (shared with /api/models endpoint)
+let cachedFreeModels: { models: string[]; fetchedAt: number } | null = null;
+const CACHE_TTL = 2 * 24 * 60 * 60 * 1000; // 2 days
+const MAX_MODELS_TO_TRY = 4; // Generate with up to 4 models in parallel
+
+const IMAGEROUTER_API_KEY = process.env.IMAGEROUTER_API_KEY;
+const IMAGEROUTER_MODELS_URL = 'https://api.imagerouter.io/v1/models';
+
+async function fetchFreeImageModels(): Promise<string[]> {
+  if (!IMAGEROUTER_API_KEY) {
+    console.error('IMAGEROUTER_API_KEY is not set');
+    return [];
+  }
+
+  const response = await fetch(IMAGEROUTER_MODELS_URL, {
+    headers: { 'Authorization': `Bearer ${IMAGEROUTER_API_KEY}` },
+  });
+
+  if (!response.ok) {
+    console.error(`ImageRouter models API returned ${response.status}`);
+    return [];
+  }
+
+  const data = await response.json();
+  const freeModels: string[] = [];
+
+  for (const [modelId, info] of Object.entries(data)) {
+    const modelInfo = info as {
+      output?: string[];
+      providers?: { pricing?: { value?: number } }[];
+    };
+
+    if (!modelInfo.output?.includes('image')) continue;
+
+    const hasFree = modelInfo.providers?.some(
+      (p) => p.pricing?.value === 0
+    );
+
+    if (hasFree) {
+      freeModels.push(modelId);
+    }
+  }
+
+  return freeModels;
+}
+
+async function getCachedFreeModels(): Promise<string[]> {
+  if (cachedFreeModels && Date.now() - cachedFreeModels.fetchedAt < CACHE_TTL) {
+    return cachedFreeModels.models;
+  }
+
+  const models = await fetchFreeImageModels();
+  cachedFreeModels = { models, fetchedAt: Date.now() };
+  return models;
+}
 
 interface GenerateApiRequest {
   length: string;
   shape: string;
   style: string;
-  model: string;
   color?: string;
   baseColor?: string;
   negative_prompt?: string;
@@ -20,10 +74,8 @@ interface GenerateApiRequest {
 
 /**
  * Constructs the prompt for image generation based on user selections.
- * @param details - The user's selections for the nail design.
- * @returns A string representing the final prompt.
  */
-function buildPrompt(details: Omit<GenerateApiRequest, 'model' | 'negative_prompt' | 'num_images' | 'width' | 'height'>): string {
+function buildPrompt(details: Omit<GenerateApiRequest, 'negative_prompt' | 'num_images' | 'width' | 'height'>): string {
   const { length, shape, style, color: colorConfig, baseColor } = details;
 
   const promptParts = [
@@ -53,38 +105,18 @@ async function handler(request: NextRequest): Promise<Response> {
 
   let requestBody: GenerateApiRequest;
   try {
- const rawBody = await request.text();
-    console.log('=== BACKEND DEBUG ===');
-    console.log('Raw request body:', rawBody);
-    
-    requestBody = JSON.parse(rawBody);
-    console.log('Parsed request body:', JSON.stringify(requestBody, null, 2));
-    console.log('Request body keys:', Object.keys(requestBody));
-    console.log('Length value:', requestBody.length, 'Type:', typeof requestBody.length);
-    console.log('Shape value:', requestBody.shape, 'Type:', typeof requestBody.shape);
-    console.log('Style value:', requestBody.style, 'Type:', typeof requestBody.style);
-    console.log('=====================');
-
-   // requestBody = await request.json();
+    requestBody = await request.json();
   } catch (error) {
     console.error('Generate API - Body Parse Error:', error);
     return NextResponse.json({ error: 'Invalid request body. Could not parse JSON.' }, { status: 400 });
   }
-  
-  const {
-    model,
-    negative_prompt,
-    num_images,
-    width,
-    height,
-  } = requestBody;
 
   console.log('Generate API: Authenticated userId:', userId);
-  console.log('Generate API: Received raw selections:', requestBody);
+  console.log('Generate API: Received selections:', requestBody);
 
   try {
-    if (!requestBody.length || !requestBody.shape || !requestBody.style || !model) {
-      return NextResponse.json({ error: 'Length, shape, style, and model are required.' }, { status: 400 });
+    if (!requestBody.length || !requestBody.shape || !requestBody.style) {
+      return NextResponse.json({ error: 'Length, shape, and style are required.' }, { status: 400 });
     }
 
     const { allowed, message } = await checkDailyGenerationLimit(userId);
@@ -99,37 +131,69 @@ async function handler(request: NextRequest): Promise<Response> {
     }
 
     const finalPrompt = buildPrompt(requestBody);
-    
     console.log('Generate API: Constructed Final Prompt:', finalPrompt);
 
-    const imageUrls = await generateImage({
-      prompt: finalPrompt,
-      model,
-      negative_prompt,
-      num_images,
-      width,
-      height,
-    });
+    // Fetch available free models (cached for 2 days)
+    const freeModels = await getCachedFreeModels();
+    const modelsToUse = freeModels.slice(0, MAX_MODELS_TO_TRY);
+
+    if (modelsToUse.length === 0) {
+      return NextResponse.json(
+        { error: 'No free image generation models are currently available. Please try again later.' },
+        { status: 503 }
+      );
+    }
+
+    console.log(`Generate API: Using ${modelsToUse.length} models:`, modelsToUse);
+
+    // Generate with all selected models in parallel
+    const results = await Promise.all(
+      modelsToUse.map(async (model) => {
+        try {
+          const imageUrls = await generateImage({
+            prompt: finalPrompt,
+            model,
+            negative_prompt: requestBody.negative_prompt,
+            num_images: requestBody.num_images || 1,
+            width: requestBody.width || 1024,
+            height: requestBody.height || 1024,
+          });
+          return { imageUrls, prompt: finalPrompt };
+        } catch (error) {
+          console.error(`Model ${model} failed:`, error instanceof Error ? error.message : error);
+          return null;
+        }
+      })
+    );
+
+    // Collect all successful image URLs
+    const validResults = results.filter((r): r is { imageUrls: string[]; prompt: string } => r !== null);
+    const allImageUrls = validResults.flatMap((r) => r.imageUrls);
+
+    if (allImageUrls.length === 0) {
+      return NextResponse.json(
+        { error: 'All image generation models failed. Please try again later.' },
+        { status: 500 }
+      );
+    }
 
     await incrementGenerationCount(userId);
 
-    return NextResponse.json({ imageUrls, prompt: finalPrompt });
+    return NextResponse.json({
+      imageUrls: allImageUrls,
+      prompt: finalPrompt,
+    });
 
   } catch (error: unknown) {
     console.error('Error in /api/generate:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
 
-    // ⭐ NEW: Check if it's a rate limit error and return mock response
     if (errorMessage.includes('Daily limit')) {
-      console.log('Daily limit reached, returning placeholder image');
-      return NextResponse.json({ 
-        imageUrls: [
-          '/images/ph.png'
-        ]
+      return NextResponse.json({
+        imageUrls: ['/images/ph.png'],
       });
     }
-    
-    // For all other errors, return the original error response
+
     return NextResponse.json({ error: `Image generation failed: ${errorMessage}` }, { status: 500 });
   }
 }
